@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <title>SafeWork - Dashboard</title>
+  <meta name="description" content="ภาพรวมการแจ้งจุดเสี่ยงและอุบัติเหตุ">
+  <style>
+    /* Donut Chart (CSS Only) */
+    .chart-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .donut-chart {
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      /*
+        conic-gradient will be updated via JS.
+        Default: gray
+      */
+      background: conic-gradient(var(--glass-border) 0% 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .donut-hole {
+      width: 130px;
+      height: 130px;
+      background: var(--bg-secondary);
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+    }
+
+    .donut-total {
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .donut-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .chart-legend {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 24px;
+      width: 100%;
+      padding: 0 20px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+
+    .legend-row {
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 0 10px;
+    }
+
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+    }
+
+    /* List Item */
+    .list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      border-bottom: 1px solid var(--glass-border);
+      transition: var(--transition);
+      cursor: pointer;
+    }
+
+    .list-item:last-child {
+      border-bottom: none;
+    }
+
+    .item-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+
+    /* Filters */
+    .filters {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+
+    /* Custom Scrollbar for Filters */
+    .filters::-webkit-scrollbar {
+      height: 3px;
+    }
+
+    .filters::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+    }
+
+    .filters::-webkit-scrollbar-thumb {
+      background: var(--accent);
+      border-radius: 10px;
+    }
+
+    .card-title {
+      position: relative;
+      margin-bottom: 12px;
+      font-weight: 700;
+      font-size: 1.15rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-primary);
+    }
+
+    .card-title::before {
+      content: '';
+      width: 4px;
+      height: 20px;
+      background: linear-gradient(180deg, var(--accent), var(--primary));
+      border-radius: 4px;
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    @media (min-width: 768px) {
+      .grid-2-tablet {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .filter-select {
+      min-width: 140px;
+    }
+
+    .text-truncate {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* History card */
+    .history-card {
+      padding: 24px;
+      margin-bottom: 16px;
+      border-radius: var(--radius-xl);
+      cursor: pointer;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(20px);
+      transition: var(--transition);
+    }
+
+    .history-card:hover {
+      background: var(--surface-hover);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .history-card .case-id {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .history-card .case-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow: hidden;
+    }
+
+    .history-card .case-meta {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    /* Bottom Nav */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 70px;
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid var(--glass-border);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding-bottom: env(safe-area-inset-bottom);
+      z-index: 1000;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.75rem;
+      font-weight: 500;
+      transition: var(--transition);
+      cursor: pointer;
+    }
+
+    .nav-item.active {
+      color: var(--accent);
+    }
+
+    .nav-item svg {
+      width: 24px;
+      height: 24px;
+    }
+  </style>
+  <link rel="stylesheet" crossorigin href="/SafeWork-webdemo/assets/styles-F3WWM0VZ.css">
+</head>
+
+<body>
+  <!-- Background Glow -->
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="logo">
+      <img src="/SafeWork-webdemo/logo/logo-64.png" alt="SafeWork Logo" style="height: 28px; filter: brightness(0) invert(1);">
+      <span>SafeWork</span>
+    </div>
+    <div class="user-info" style="position: relative; gap: 12px">
+      <button class="btn btn-primary" style="padding: 6px 14px; font-size: 0.85rem; height: auto; min-width: unset"
+        onclick="window.location.href='employee.html'">+ แจ้งเหตุ</button>
+      <span id="userName" style="font-size:0.85rem; color:var(--text-secondary)">-</span>
+      <div id="userAvatar" class="avatar" onclick="toggleDropdown()"
+        style="background: linear-gradient(135deg, var(--warning), var(--accent)); cursor: pointer; z-index: 1002;">-
+      </div>
+      <div id="profileDropdown" class="glass-card"
+        style="display: none; position: absolute; top: 48px; right: 0; padding: 12px; z-index: 1001; min-width: 180px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); overflow: hidden;">
+        <button class="btn btn-ghost btn-block"
+          style="color: #ff4d4d; justify-content: flex-start; gap: 12px; display: flex; align-items: center; padding: 10px 12px; border-radius: 8px;"
+          onclick="logout()">
+          <div
+            style="background: rgba(255, 77, 77, 0.1); padding: 6px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </div>
+          <span style="font-weight: 600; font-size: 0.95rem;">ออกจากระบบ</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-container" style="padding-bottom: 60px;">
+
+    <!-- Stats Overview -->
+    <div class="section-title"> ภาพรวมเดือนนี้</div>
+    <div class="grid grid-4 stagger-children">
+      <div class="glass-card stat-card danger">
+        <div class="stat-value" id="statTotal">-</div>
+        <div class="stat-label">เหตุการณ์ทั้งหมด</div>
+      </div>
+      <div class="glass-card stat-card warning">
+        <div class="stat-value" id="statPending">-</div>
+        <div class="stat-label">รอดำเนินการ</div>
+      </div>
+      <div class="glass-card stat-card primary">
+        <div class="stat-value" style="color: var(--accent);" id="statInProg">-</div>
+        <div class="stat-label">กำลังแก้ไข</div>
+      </div>
+      <div class="glass-card stat-card success">
+        <div class="stat-value" id="statResolved">-</div>
+        <div class="stat-label">แก้ไขเสร็จสิ้น</div>
+      </div>
+    </div>
+
+    <div class="mt-24 stagger-children">
+      <!-- Chart 1: Severity -->
+      <div class="card-title">สถิติความรุนแรง</div>
+      <div class="glass-card mb-24">
+        <div class="chart-container">
+          <div class="donut-chart" id="severityChart">
+            <div class="donut-hole">
+              <div class="donut-total" id="chartTotal">-</div>
+              <div class="donut-label">รายการ</div>
+            </div>
+          </div>
+          <div class="chart-legend legend-row">
+            <div class="legend-item">
+              <div class="legend-color" style="background: var(--danger)"></div>
+              <span>สูง (<span id="countHigh">0</span>)</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color" style="background: var(--warning)"></div>
+              <span>กลาง (<span id="countMid">0</span>)</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color" style="background: var(--success)"></div>
+              <span>ต่ำ (<span id="countLow">0</span>)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chart 2: Problem Types -->
+      <div class="card-title"> สถิติตามประเภทปัญหา</div>
+      <div class="glass-card mb-24">
+        <div class="chart-container">
+          <div class="donut-chart" id="typeChart">
+            <div class="donut-hole">
+              <div class="donut-total" id="typeChartTotal">-</div>
+              <div class="donut-label">รายการ</div>
+            </div>
+          </div>
+          <div id="typeLegend" class="chart-legend" style="max-height: 300px; overflow-y: auto; padding-right: 4px;">
+            <!-- Dynamic Type Legend -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Chart 3: Zones -->
+      <div class="card-title"> สถิติตามสถานที่</div>
+      <div class="glass-card mb-24">
+        <div class="chart-container">
+          <div class="donut-chart" id="zoneChart">
+            <div class="donut-hole">
+              <div class="donut-total" id="zoneChartTotal">-</div>
+              <div class="donut-label">รายการ</div>
+            </div>
+          </div>
+          <div id="zoneLegend" class="chart-legend" style="max-height: 300px; overflow-y: auto; padding-right: 4px;">
+            <!-- Dynamic Zone Legend -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <a href="dashboard.html" class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+      </svg>
+      <span>หน้าหลัก</span>
+    </a>
+    <a href="history.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polyline points="12 6 12 12 16 14"></polyline>
+      </svg>
+      <span>ประวัติ</span>
+    </a>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    // Initialize Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAdhptJNglCc8QlWItzGe_UXsXEzpRsvuU",
+      authDomain: "safework-b2480.firebaseapp.com",
+      projectId: "safework-b2480",
+      storageBucket: "safework-b2480.firebasestorage.app",
+      messagingSenderId: "1057006749788",
+      appId: "1:1057006749788:web:601a2e22d5c6737e793e99",
+      measurementId: "G-5YW5QSH303"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Help mitigate ERR_QUIC_PROTOCOL_ERROR from WebChannel
+    try {
+      db.settings({
+        experimentalForceLongPolling: true,
+        useFetchStreams: false
+      });
+    } catch (e) {
+      console.error("Firestore settings error:", e);
+    }
+
+    // ---- Init User Data ----
+    let currentUser = null;
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+      try {
+        currentUser = JSON.parse(savedUser);
+      } catch (e) {
+        console.error('Error parsing user data:', e);
+      }
+    }
+
+    if (!currentUser) {
+      window.location.href = 'login.html';
+    } else {
+      // Set UI
+      document.getElementById('userName').textContent = currentUser.name;
+      document.getElementById('userAvatar').textContent = currentUser.name.charAt(0);
+    }
+
+    function logout() {
+      localStorage.removeItem('currentUser');
+      window.location.href = 'login.html';
+    }
+
+    function toggleDropdown() {
+      const dropdown = document.getElementById('profileDropdown');
+      const isVisible = dropdown.style.display === 'block';
+      dropdown.style.display = isVisible ? 'none' : 'block';
+    }
+
+    // Close dropdown when clicking outside
+    window.addEventListener('click', (e) => {
+      if (!e.target.closest('.user-info')) {
+        const dropdown = document.getElementById('profileDropdown');
+        if (dropdown) dropdown.style.display = 'none';
+      }
+    });
+
+    let allReports = [];
+
+    // ---- Date Formatter ----
+    function formatTime(timestamp) {
+      if (!timestamp) return '';
+      const d = timestamp.toDate();
+      return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    }
+
+    function formatDate(timestamp) {
+      if (!timestamp) return 'กำลังอัปเดต...';
+      const d = timestamp.toDate();
+      return `${d.getDate()} มี.ค. ${d.getFullYear()}, ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    }
+
+    function timeAgo(timestamp) {
+      if (!timestamp) return '';
+      const seconds = Math.floor((new Date() - timestamp.toDate()) / 1000);
+      let interval = seconds / 31536000;
+      if (interval > 1) return Math.floor(interval) + " ปีที่แล้ว";
+      interval = seconds / 2592000;
+      if (interval > 1) return Math.floor(interval) + " เดือนที่แล้ว";
+      interval = seconds / 86400;
+      if (interval > 1) return Math.floor(interval) + " วันที่แล้ว";
+      interval = seconds / 3600;
+      if (interval > 1) return Math.floor(interval) + " ชม. ที่แล้ว";
+      interval = seconds / 60;
+      if (interval > 1) return Math.floor(interval) + " นาทีที่แล้ว";
+      return Math.floor(seconds) + " วิ. ที่แล้ว";
+    }
+
+    // ---- Fetch Data ----
+    db.collection('reports')
+      .orderBy('createdAt', 'desc')
+      .onSnapshot(snapshot => {
+        allReports = [];
+        snapshot.forEach(doc => allReports.push({ id: doc.id, ...doc.data() }));
+
+        updateStats();
+        updateCharts();
+      });
+
+    function updateStats() {
+      const pendingCount = allReports.filter(r => r.status === 'pending' || r.status === 'accepted').length;
+      const inProgCount = allReports.filter(r => r.status === 'inprogress').length;
+      const resolvedCount = allReports.filter(r => r.status === 'resolved').length;
+
+      document.getElementById('statTotal').textContent = allReports.length;
+      document.getElementById('statPending').textContent = pendingCount;
+      document.getElementById('statInProg').textContent = inProgCount;
+      document.getElementById('statResolved').textContent = resolvedCount;
+    }
+
+    function updateCharts() {
+      // --- 1. Severity Chart ---
+      const highLabels = allReports.filter(r => r.severity === 'high').length;
+      const midLabels = allReports.filter(r => r.severity === 'medium').length;
+      const lowLabels = allReports.filter(r => r.severity === 'low').length;
+      const sTotal = highLabels + midLabels + lowLabels;
+
+      document.getElementById('chartTotal').textContent = sTotal;
+      document.getElementById('countHigh').textContent = highLabels;
+      document.getElementById('countMid').textContent = midLabels;
+      document.getElementById('countLow').textContent = lowLabels;
+
+      const sElem = document.getElementById('severityChart');
+      if (sTotal === 0) {
+        sElem.style.background = `conic-gradient(var(--glass-border) 0% 100%)`;
+      } else {
+        const pHigh = (highLabels / sTotal) * 100;
+        const pMid = (midLabels / sTotal) * 100;
+        sElem.style.background = `conic-gradient(
+          var(--danger) 0% ${pHigh}%, 
+          var(--warning) ${pHigh}% ${pHigh + pMid}%, 
+          var(--success) ${pHigh + pMid}% 100%
+        )`;
+      }
+
+      // --- 2. Zone Chart ---
+      const zoneCounts = {};
+      allReports.forEach(r => {
+        const zones = [];
+        const rawZones = Array.isArray(r.zoneNames) ? r.zoneNames : (r.zoneName ? [r.zoneName] : []);
+
+        rawZones.forEach(name => {
+          if (name.includes('อื่นๆ')) {
+            if (r.zoneCustomText && r.zoneCustomText.trim()) {
+              zones.push(r.zoneCustomText.trim());
+            }
+          } else {
+            zones.push(name);
+          }
+        });
+
+        [...new Set(zones)].forEach(z => {
+          if (z) zoneCounts[z] = (zoneCounts[z] || 0) + 1;
+        });
+      });
+
+      const zoneData = Object.entries(zoneCounts).sort((a, b) => b[1] - a[1]);
+      const zTotal = zoneData.reduce((sum, entry) => sum + entry[1], 0);
+      const zTotalElem = document.getElementById('zoneChartTotal');
+      const zElem = document.getElementById('zoneChart');
+      const zLegend = document.getElementById('zoneLegend');
+
+      if (zTotalElem) zTotalElem.textContent = zTotal;
+      if (zLegend) zLegend.innerHTML = '';
+
+      if (zTotal === 0) {
+        if (zElem) zElem.style.background = `conic-gradient(var(--glass-border) 0% 100%)`;
+        if (zLegend) zLegend.innerHTML = '<div style="color:var(--text-muted); font-size:0.8rem; padding:10px">ไม่มีข้อมูลสถานที่</div>';
+      } else {
+        const colors = [
+          'var(--accent)', '#6366f1', '#a855f7', '#ec4899', '#f43f5e',
+          '#fb923c', '#facc15', '#4ade80', '#2dd4bf', '#38bdf8'
+        ];
+
+        let currentPerc = 0;
+        let gradParts = [];
+
+        zoneData.forEach((entry, idx) => {
+          const [name, count] = entry;
+          const color = colors[idx % colors.length];
+          const perc = (count / zTotal) * 100;
+
+          gradParts.push(`${color} ${currentPerc}% ${currentPerc + perc}%`);
+          currentPerc += perc;
+
+          if (zLegend) {
+            zLegend.innerHTML += `
+              <div class="legend-item" style="justify-content: space-between; width: 100%;">
+                <div style="display: flex; align-items: center; gap: 12px; overflow: hidden;">
+                  <div class="legend-color" style="background: ${color}; flex-shrink: 0;"></div>
+                  <span class="text-truncate">${name}</span>
+                </div>
+                <span style="font-weight: 600; color: var(--text-secondary); flex-shrink: 0;">${count}</span>
+              </div>
+            `;
+          }
+        });
+
+        if (zElem) zElem.style.background = `conic-gradient(${gradParts.join(', ')})`;
+      }
+
+      // --- 3. Problem Type Chart ---
+      const typeCounts = {};
+      allReports.forEach(r => {
+        const types = [];
+        const rawTypes = Array.isArray(r.problemTypeNames) ? r.problemTypeNames : (r.problemTypeName ? [r.problemTypeName] : []);
+
+        rawTypes.forEach(name => {
+          if (name.includes('อื่นๆ')) {
+            if (r.problemCustomText && r.problemCustomText.trim()) {
+              types.push(r.problemCustomText.trim());
+            }
+          } else {
+            types.push(name);
+          }
+        });
+
+        [...new Set(types)].forEach(t => {
+          if (t) typeCounts[t] = (typeCounts[t] || 0) + 1;
+        });
+      });
+
+      const typeData = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
+      const tTotal = typeData.reduce((sum, entry) => sum + entry[1], 0);
+      const tTotalElem = document.getElementById('typeChartTotal');
+      const tElem = document.getElementById('typeChart');
+      const tLegend = document.getElementById('typeLegend');
+
+      if (tTotalElem) tTotalElem.textContent = tTotal;
+      if (tLegend) tLegend.innerHTML = '';
+
+      if (tTotal === 0) {
+        if (tElem) tElem.style.background = `conic-gradient(var(--glass-border) 0% 100%)`;
+        if (tLegend) tLegend.innerHTML = '<div style="color:var(--text-muted); font-size:0.8rem; padding:10px">ไม่มีข้อมูลประเภทปัญหา</div>';
+      } else {
+        const colors = [
+          '#6366f1', '#a855f7', '#ec4899', '#f43f5e', '#fb923c',
+          '#facc15', '#4ade80', '#2dd4bf', '#38bdf8', 'var(--accent)'
+        ];
+
+        let currentPerc = 0;
+        let gradParts = [];
+
+        typeData.forEach((entry, idx) => {
+          const [name, count] = entry;
+          const color = colors[idx % colors.length];
+          const perc = (count / tTotal) * 100;
+
+          gradParts.push(`${color} ${currentPerc}% ${currentPerc + perc}%`);
+          currentPerc += perc;
+
+          if (tLegend) {
+            tLegend.innerHTML += `
+              <div class="legend-item" style="justify-content: space-between; width: 100%;">
+                <div style="display: flex; align-items: center; gap: 12px; overflow: hidden;">
+                  <div class="legend-color" style="background: ${color}; flex-shrink: 0;"></div>
+                  <span class="text-truncate">${name}</span>
+                </div>
+                <span style="font-weight: 600; color: var(--text-secondary); flex-shrink: 0;">${count}</span>
+              </div>
+            `;
+          }
+        });
+
+        if (tElem) tElem.style.background = `conic-gradient(${gradParts.join(', ')})`;
+      }
+    }
+
+
+    function openTextDetail(title, text) {
+      document.getElementById('textDetailTitle').textContent = title;
+      document.getElementById('textDetailContent').textContent = text;
+      openModal('textDetailModal');
+    }
+
+    function openModal(id) {
+      document.getElementById(id).classList.add('active');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+  </script>
+
+  <!-- Modal: Text Detail -->
+  <div class="modal-overlay" id="textDetailModal" onclick="closeModal('textDetailModal')">
+    <div class="modal" onclick="event.stopPropagation()" style="max-width: 450px;">
+      <div class="modal-header">
+        <h2 id="textDetailTitle">รายละเอียด</h2>
+        <button class="modal-close" onclick="closeModal('textDetailModal')">&times;</button>
+      </div>
+      <div id="textDetailContent"
+        style="padding: 20px 0; line-height: 1.6; color: var(--text-primary); white-space: pre-wrap; word-break: break-word;">
+      </div>
+      <button class="btn btn-primary btn-block" onclick="closeModal('textDetailModal')">ตกลง</button>
+    </div>
+  </div>
+</body>
+
+</html>
