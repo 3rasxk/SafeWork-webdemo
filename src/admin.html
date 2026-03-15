@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <title>SafeWork — Admin</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    .admin-container {
+      display: grid;
+      grid-template-columns: 250px 1fr;
+      gap: 24px;
+      min-height: calc(100vh - 120px);
+    }
+
+    .admin-menu {
+      background: var(--surface);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-lg);
+      padding: 16px 0;
+      height: fit-content;
+    }
+
+    .menu-item {
+      padding: 12px 20px;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-secondary);
+      border-left: 3px solid transparent;
+    }
+
+    .menu-item.active {
+      color: var(--primary-light);
+      background: rgba(108, 92, 231, 0.1);
+      border-left-color: var(--primary);
+      font-weight: 600;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .data-table th {
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-action {
+      padding: 6px 10px;
+      font-size: 0.8rem;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 768px) {
+      .admin-container {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .admin-menu {
+        display: flex;
+        overflow-x: auto;
+        padding: 4px;
+        background: rgba(255, 255, 255, 0.03);
+        border: none;
+        gap: 8px;
+        scrollbar-width: none;
+        /* Hide scrollbar Firefox */
+      }
+
+      .admin-menu::-webkit-scrollbar {
+        display: none;
+        /* Hide scrollbar Chrome/Safari */
+      }
+
+      .menu-item {
+        border-left: none;
+        border-bottom: 2px solid transparent;
+        white-space: nowrap;
+        padding: 10px 16px;
+        font-size: 0.9rem;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: var(--radius-md);
+      }
+
+      .menu-item.active {
+        border-bottom-color: var(--primary);
+        background: rgba(108, 92, 231, 0.15);
+      }
+
+      .top-bar {
+        padding: 0 16px;
+        height: 60px;
+      }
+
+      .top-bar .logo span {
+        display: none;
+      }
+
+      #userName {
+        display: none;
+      }
+
+      .section-title {
+        font-size: 1.25rem;
+        margin-bottom: 16px;
+      }
+
+      /* Table-to-Card Transformation for Mobile */
+      .data-table,
+      .data-table thead,
+      .data-table tbody,
+      .data-table th,
+      .data-table td,
+      .data-table tr {
+        display: block;
+      }
+
+      .data-table thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+      }
+
+      .data-table tr {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius-lg);
+        margin: 16px;
+        padding: 8px;
+        position: relative;
+      }
+
+      .data-table td {
+        border: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        position: relative;
+        padding-left: 45% !important;
+        text-align: right !important;
+        min-height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+      }
+
+      .data-table td:last-child {
+        border-bottom: 0;
+        justify-content: center;
+        padding-left: 8px !important;
+        gap: 8px;
+      }
+
+      .data-table td:before {
+        position: absolute;
+        left: 12px;
+        width: 40%;
+        white-space: nowrap;
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-muted);
+        content: attr(data-label);
+        font-size: 0.8rem;
+      }
+
+      .modal {
+        width: 95%;
+        padding: 20px;
+      }
+
+      .tab-content .flex-between {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 16px !important;
+      }
+
+      .tab-content .flex-between h3 {
+        font-size: 1.1rem;
+      }
+    }
+
+    /* Status Badges Solid */
+    .badge-success {
+      background: #10B981 !important;
+      color: white !important;
+      border: none !important;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+    }
+
+    .badge-danger {
+      background: #EF4444 !important;
+      color: white !important;
+      border: none !important;
+      box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+    }
+
+    /* Hide Number Spinner */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      appearance: none;
+      margin: 0;
+    }
+
+    input[type=number] {
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+
+    /* Switch Toggle Styling */
+    .switch-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--glass-border);
+      transition: var(--transition);
+    }
+
+    /* .switch-container:active {
+      transform: scale(0.98);
+    } */
+
+    .switch-label {
+      font-weight: 600;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: rgba(255, 255, 255, 0.1);
+      transition: .3s;
+      border-radius: 24px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    input:checked+.slider {
+      background-color: var(--success);
+    }
+
+    input:checked+.slider:before {
+      transform: translateX(20px);
+    }
+  </style>
+  <link rel="stylesheet" crossorigin href="/assets/styles-F3WWM0VZ.css">
+</head>
+
+<body>
+  <!-- Background Glow -->
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="logo">
+      <img src="/logo/logo-64.png" alt="SafeWork Logo" style="height: 28px; filter: brightness(0) invert(1);">
+      <span>SafeWork Admin</span>
+    </div>
+    <div class="user-info" style="position: relative; gap: 12px">
+      <button class="btn btn-primary" style="padding: 6px 14px; font-size: 0.85rem; height: auto; min-width: unset"
+        onclick="window.location.href='employee.html'">+ แจ้งเหตุ</button>
+      <span id="userName" style="font-size:0.85rem; color:var(--text-secondary)">-</span>
+      <div id="userAvatar" class="avatar" onclick="toggleDropdown()"
+        style="background: linear-gradient(135deg, var(--danger), var(--primary)); cursor: pointer; z-index: 1002;">-
+      </div>
+      <div id="profileDropdown" class="glass-card"
+        style="display: none; position: absolute; top: 48px; right: 0; padding: 12px; z-index: 1001; min-width: 180px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); overflow: hidden;">
+        <button class="btn btn-ghost btn-block"
+          style="color: #ff4d4d; justify-content: flex-start; gap: 12px; display: flex; align-items: center; padding: 10px 12px; border-radius: 8px;"
+          onclick="logout()">
+          <div
+            style="background: rgba(255, 77, 77, 0.1); padding: 6px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </div>
+          <span style="font-weight: 600; font-size: 0.95rem;">ออกจากระบบ</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-container">
+    <div class="section-title"> ตั้งค่าระบบ</div>
+
+    <div class="admin-container">
+      <!-- Sidebar -->
+      <div class="admin-menu">
+        <div class="menu-item active" onclick="switchTab('zones', this)"> จัดการสถานที่</div>
+        <div class="menu-item" onclick="switchTab('types', this)"> จัดการประเภทปัญหา</div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="glass-card" style="padding:0; overflow:hidden">
+
+        <!-- Zones Tab -->
+        <div id="tab-zones" class="tab-content">
+          <div class="flex-between" style="padding: 20px; border-bottom: 1px solid var(--glass-border);">
+            <h3 style="margin:0"> สถานที่แจ้งเหตุ</h3>
+            <button class="btn btn-primary btn-sm" onclick="openModal('zoneModal')">+ เพิ่มสถานที่ใหม่</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 80px;">ลำดับ</th>
+                  <th>รหัสอ้างอิง (ID)</th>
+                  <th>ชื่อแสดงผล</th>
+                  <th>สถานะ</th>
+                  <th style="width: 150px;">การจัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="zoneTableBody">
+                <!-- JS populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Problem Types Tab (Hidden by default) -->
+        <div id="tab-types" class="tab-content" style="display:none">
+          <div class="flex-between" style="padding: 20px; border-bottom: 1px solid var(--glass-border);">
+            <h3 style="margin:0"> ประเภทปัญหา</h3>
+            <button class="btn btn-primary btn-sm" onclick="openModal('typeModal')">+ เพิ่มประเภทใหม่</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 80px;">ลำดับ</th>
+                  <th>รหัสอ้างอิง (ID)</th>
+                  <th>ชื่อแสดงผล</th>
+                  <th>สถานะ</th>
+                  <th style="width: 150px;">การจัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="typeTableBody">
+                <!-- JS populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- General Tab -->
+        <div id="tab-general" class="tab-content" style="display:none; padding:20px">
+          <h3> ตั้งค่าทั่วไป</h3>
+          <p style="color:var(--text-muted); margin-top:10px">ส่วนนี้กำลังอยู่ในการพัฒนา...</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Zone Modal -->
+  <div class="modal-overlay" id="zoneModal">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2 id="zoneModalTitle">เพิ่มสถานที่ใหม่</h2>
+        <button class="modal-close" onclick="closeModal('zoneModal')">&times;</button>
+      </div>
+      <input type="hidden" id="zoneDocId">
+      <div class="form-group">
+        <label class="form-label">รหัสอ้างอิง (ID)</label>
+        <input type="text" id="zoneIdInput" class="form-input" placeholder="เช่น warehouse-c">
+      </div>
+      <div class="form-group">
+        <label class="form-label">ชื่อแสดงผล</label>
+        <input type="text" id="zoneNameInput" class="form-input" placeholder="เช่น  โกดัง C">
+      </div>
+      <div class="form-group">
+        <label class="form-label">ลำดับการแสดงผล</label>
+        <input type="number" id="zoneOrderInput" class="form-input" placeholder="เช่น 1">
+      </div>
+      <div class="form-group">
+        <div class="switch-container">
+          <span class="switch-label">เปิดใช้งานรายการนี้</span>
+          <label class="switch">
+            <input type="checkbox" id="zoneActiveInput" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="saveZone()">บันทึกข้อมูล</button>
+    </div>
+  </div>
+
+  <!-- Type Modal -->
+  <div class="modal-overlay" id="typeModal">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2 id="typeModalTitle">เพิ่มประเภทปัญหาใหม่</h2>
+        <button class="modal-close" onclick="closeModal('typeModal')">&times;</button>
+      </div>
+      <input type="hidden" id="typeDocId">
+      <div class="form-group">
+        <label class="form-label">รหัสอ้างอิง (ID)</label>
+        <input type="text" id="typeIdInput" class="form-input" placeholder="เช่น uniform">
+      </div>
+      <div class="form-group">
+        <label class="form-label">ชื่อแสดงผล</label>
+        <input type="text" id="typeNameInput" class="form-input" placeholder="เช่น การแต่งกาย">
+      </div>
+      <div class="form-group">
+        <label class="form-label">ลำดับการแสดงผล</label>
+        <input type="number" id="typeOrderInput" class="form-input" placeholder="เช่น 1">
+      </div>
+      <div class="form-group">
+        <div class="switch-container">
+          <span class="switch-label">เปิดใช้งานรายการนี้</span>
+          <label class="switch">
+            <input type="checkbox" id="typeActiveInput" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="saveType()">บันทึกข้อมูล</button>
+    </div>
+  </div>
+
+  <!-- Delete Modal -->
+  <div class="modal-overlay" id="deleteModal">
+    <div class="modal" onclick="event.stopPropagation()" style="max-width: 400px; text-align: center;">
+      <div style="font-size: 3.5rem; color: #EF4444; margin: 20px 0;">
+        <i class="fas fa-exclamation-circle"></i>
+      </div>
+      <h2 style="margin-bottom: 12px; font-size: 1.5rem; color: #F8FAFC;">ยืนยันการลบข้อมูล?</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 24px; padding: 0 10px; line-height: 1.6;">
+        คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้แบบถาวร? การดำเนินการนี้ไม่สามารถย้อนกลับได้
+      </p>
+
+      <input type="hidden" id="pendingDeleteColl">
+      <input type="hidden" id="pendingDeleteId">
+
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
+        <button class="btn btn-danger btn-block" id="confirmDeleteBtn" onclick="confirmDelete()">ยืนยันการลบ</button>
+        <button class="btn btn-ghost btn-block" onclick="closeModal('deleteModal')">ยกเลิก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAdhptJNglCc8QlWItzGe_UXsXEzpRsvuU",
+      authDomain: "safework-b2480.firebaseapp.com",
+      projectId: "safework-b2480",
+      storageBucket: "safework-b2480.firebasestorage.app",
+      messagingSenderId: "1057006749788",
+      appId: "1:1057006749788:web:601a2e22d5c6737e793e99"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Configure Firestore
+    try {
+      db.settings({ experimentalForceLongPolling: true });
+    } catch (e) {
+      console.warn("Firestore settings already applied:", e);
+    }
+
+    // ---- Init User Data ----
+    let currentUser = null;
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+      try {
+        currentUser = JSON.parse(savedUser);
+      } catch (e) { console.error('Error parsing user data:', e); }
+    }
+
+    if (!currentUser) {
+      window.location.href = 'login.html';
+    } else {
+      // Set UI
+      document.getElementById('userName').textContent = currentUser.name;
+      document.getElementById('userAvatar').textContent = currentUser.name.charAt(0);
+    }
+
+    function logout() {
+      localStorage.removeItem('currentUser');
+      window.location.href = 'login.html';
+    }
+
+    function toggleDropdown() {
+      const dropdown = document.getElementById('profileDropdown');
+      const isVisible = dropdown.style.display === 'block';
+      dropdown.style.display = isVisible ? 'none' : 'block';
+    }
+
+    // Close dropdown when clicking outside
+    window.addEventListener('click', (e) => {
+      if (!e.target.closest('.user-info')) {
+        document.getElementById('profileDropdown').style.display = 'none';
+      }
+    });
+
+    // Tab switching
+    function switchTab(tabId, el) {
+      document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
+      el.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+      document.getElementById('tab-' + tabId).style.display = 'block';
+    }
+
+    // Modal helpers
+    function openModal(id) { document.getElementById(id).classList.add('active'); }
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+      // clear inputs
+      document.querySelectorAll(`#${id} input[type="text"], #${id} input[type="number"], #${id} input[type="hidden"]`).forEach(i => i.value = '');
+      document.querySelectorAll(`#${id} input[type="checkbox"]`).forEach(i => i.checked = true);
+      document.getElementById('zoneIdInput').disabled = false;
+      document.getElementById('typeIdInput').disabled = false;
+      document.getElementById('zoneModalTitle').textContent = 'เพิ่มสถานที่ใหม่';
+      document.getElementById('typeModalTitle').textContent = 'เพิ่มประเภทปัญหาใหม่';
+    }
+
+    // Toast
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.innerHTML = `<span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span> ${message}`;
+      document.getElementById('toastContainer').appendChild(toast);
+      setTimeout(() => toast.remove(), 3500);
+    }
+
+    // ======== ZONES ========
+    db.collection('zones').orderBy('order').onSnapshot(snap => {
+      let html = '';
+      snap.forEach(doc => {
+        const d = doc.data();
+        html += `
+          <tr>
+            <td data-label="ลำดับ" style="text-align:center">${d.order || 0}</td>
+            <td data-label="รหัส ID" style="font-family:monospace; color:var(--text-secondary)">${doc.id}</td>
+            <td data-label="ชื่อสถานที่">${d.name}</td>
+            <td data-label="สถานะ"><span class="badge ${d.active ? 'badge-success' : 'badge-danger'}" style="padding: 4px 10px; min-width: 60px; justify-content: center;">${d.active ? 'เปิด' : 'ปิด'}</span></td>
+            <td>
+              <button class="btn btn-ghost btn-action" onclick="editZone('${doc.id}', ${JSON.stringify({ ...d, id: doc.id }).replace(/"/g, '&quot;')})">แก้ไข</button>
+              ${(doc.id !== 'zone-other' && doc.id !== 'type-other') ? `<button class="btn btn-ghost btn-action" style="color:var(--danger)" onclick="deleteDoc('zones', '${doc.id}'); event.stopPropagation();">ลบ</button>` : ''}
+            </td>
+          </tr>
+        `;
+      });
+      document.getElementById('zoneTableBody').innerHTML = html || '<tr><td colspan="5" class="empty-state">ไม่มีข้อมูล</td></tr>';
+    });
+
+    function editZone(docId, data) {
+      document.getElementById('zoneDocId').value = docId;
+      document.getElementById('zoneIdInput').value = data.id;
+      document.getElementById('zoneNameInput').value = data.name;
+      document.getElementById('zoneOrderInput').value = data.order || 0;
+      document.getElementById('zoneActiveInput').checked = data.active !== false;
+      document.getElementById('zoneIdInput').disabled = true;
+      document.getElementById('zoneModalTitle').textContent = 'แก้ไขสถานที่';
+      openModal('zoneModal');
+    }
+
+    async function saveZone() {
+      const docId = document.getElementById('zoneDocId').value;
+      const idStr = document.getElementById('zoneIdInput').value.trim();
+      const nameStr = document.getElementById('zoneNameInput').value.trim();
+      const orderNum = parseInt(document.getElementById('zoneOrderInput').value) || 0;
+      const isActive = document.getElementById('zoneActiveInput').checked;
+
+      if (!idStr || !nameStr) return showToast('กรุณากรอกข้อมูลให้ครบถ้วนครับ', 'error');
+
+      const data = {
+        name: nameStr,
+        order: orderNum,
+        active: isActive
+      };
+      try {
+        if (docId) {
+          data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+          await db.collection('zones').doc(docId).update(data);
+          // showToast('อัปเดตข้อมูลสำเร็จ', 'success'); // Removed as requested
+        } else {
+          // Check if ID already exists
+          const check = await db.collection('zones').doc(idStr).get();
+          if (check.exists) return showToast('รหัส ID นี้มีอยู่แล้ว', 'error');
+
+          data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+          await db.collection('zones').doc(idStr).set(data);
+          // showToast('เพิ่มข้อมูลสำเร็จ', 'success'); // Removed as requested
+        }
+        closeModal('zoneModal');
+      } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+      }
+    }
+
+    // ======== PROBLEM TYPES ========
+    db.collection('problemTypes').orderBy('order').onSnapshot(snap => {
+      let html = '';
+      snap.forEach(doc => {
+        const d = doc.data();
+        html += `
+          <tr>
+            <td data-label="ลำดับ" style="text-align:center">${d.order || 0}</td>
+            <td data-label="รหัส ID" style="font-family:monospace; color:var(--text-secondary)">${doc.id}</td>
+            <td data-label="ชื่อประเภท">${d.name}</td>
+            <td data-label="สถานะ"><span class="badge ${d.active ? 'badge-success' : 'badge-danger'}" style="padding: 4px 10px; min-width: 60px; justify-content: center;">${d.active ? 'เปิด' : 'ปิด'}</span></td>
+            <td>
+              <button class="btn btn-ghost btn-action" onclick="editType('${doc.id}', ${JSON.stringify({ ...d, id: doc.id }).replace(/"/g, '&quot;')})">แก้ไข</button>
+              ${(doc.id !== 'type-other' && doc.id !== 'zone-other') ? `<button class="btn btn-ghost btn-action" style="color:var(--danger)" onclick="deleteDoc('problemTypes', '${doc.id}'); event.stopPropagation();">ลบ</button>` : ''}
+            </td>
+          </tr>
+        `;
+      });
+      document.getElementById('typeTableBody').innerHTML = html || '<tr><td colspan="6" class="empty-state">ไม่มีข้อมูล</td></tr>';
+    });
+
+    function editType(docId, data) {
+      document.getElementById('typeDocId').value = docId;
+      document.getElementById('typeIdInput').value = data.id;
+      document.getElementById('typeNameInput').value = data.name;
+      document.getElementById('typeOrderInput').value = data.order || 0;
+      document.getElementById('typeActiveInput').checked = data.active !== false;
+      document.getElementById('typeIdInput').disabled = true;
+      document.getElementById('typeModalTitle').textContent = 'แก้ไขประเภทปัญหา';
+      openModal('typeModal');
+    }
+
+    async function saveType() {
+      const docId = document.getElementById('typeDocId').value;
+      const idStr = document.getElementById('typeIdInput').value.trim();
+      const nameStr = document.getElementById('typeNameInput').value.trim();
+      const orderNum = parseInt(document.getElementById('typeOrderInput').value) || 0;
+      const isActive = document.getElementById('typeActiveInput').checked;
+
+      if (!idStr || !nameStr) return showToast('กรุณากรอกรหัสและชื่อครับ', 'error');
+
+      const data = {
+        name: nameStr,
+        order: orderNum,
+        active: isActive
+      };
+      try {
+        if (docId) {
+          data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+          await db.collection('problemTypes').doc(docId).update(data);
+          // showToast('อัปเดตข้อมูลสำเร็จ', 'success'); // Removed as requested
+        } else {
+          // Check if ID already exists
+          const check = await db.collection('problemTypes').doc(idStr).get();
+          if (check.exists) return showToast('รหัส ID นี้มีอยู่แล้ว', 'error');
+
+          data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+          await db.collection('problemTypes').doc(idStr).set(data);
+          // showToast('เพิ่มข้อมูลสำเร็จ', 'success'); // Removed as requested
+        }
+        closeModal('typeModal');
+      } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+      }
+    }
+
+    // Custom Delete Confirmation
+    function deleteDoc(coll, id) {
+      console.log(`Prompting delete for ${coll}: ${id}`);
+      document.getElementById('pendingDeleteColl').value = coll;
+      document.getElementById('pendingDeleteId').value = id;
+      openModal('deleteModal');
+    }
+
+    async function confirmDelete() {
+      const coll = document.getElementById('pendingDeleteColl').value;
+      const id = document.getElementById('pendingDeleteId').value;
+
+      console.log(`Executing delete for ${coll}: ${id}`);
+      const btn = document.getElementById('confirmDeleteBtn');
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'กำลังลบ...';
+
+      try {
+        await db.collection(coll).doc(id).delete();
+        console.log('Delete successful');
+        // showToast('ลบข้อมูลสำเร็จ', 'success'); // Removed as requested
+        closeModal('deleteModal');
+      } catch (e) {
+        console.error('Delete error:', e);
+        showToast('Error: ' + e.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    }
+
+  </script>
+</body>
+
+</html>
